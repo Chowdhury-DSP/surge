@@ -234,6 +234,7 @@ SurgeStorage::SurgeStorage(std::string suppliedDataPath) : otherscene_clients(0)
 #endif
 
 #if MAC
+    /*
     char path[1024];
     const char *buildOverrideDataPath = getenv("PIPELINE_OVERRIDE_DATA_HOME");
     if (buildOverrideDataPath)
@@ -278,6 +279,7 @@ SurgeStorage::SurgeStorage(std::string suppliedDataPath) : otherscene_clients(0)
     // ~/Documents/Surge in full name
     sprintf(path, "%s/Documents/Surge", homePath);
     userDataPath = path;
+     */
 #elif LINUX
     if (!hasSuppliedDataPath)
     {

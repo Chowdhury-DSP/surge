@@ -80,6 +80,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
       add_compile_options(
         -fasm-blocks
       )
+      if(IOS)
+        add_compile_options(
+          -Wno-conversion # needed for eurorack?
+        )
+      endif()
     endif()
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "^GNU$")
     # GCC only
@@ -181,9 +186,14 @@ target_link_libraries(surge-shared PUBLIC
   surge-shared-binary
 )
 
-if( NOT LINUX_ARM_CROSSCOMPILE )
+if( NOT (LINUX_ARM_CROSSCOMPILE OR IOS) )
   add_subdirectory(libs/LuaJitLib)
   target_link_libraries(surge-shared PUBLIC luajit-5.1)
+else()
+  target_compile_definitions(surge-shared PUBLIC
+    HAS_LUAJIT=0
+    HAS_FORMULA_MODULATOR=0
+  )
 endif()
 
 # We want to run this once alas, since JUCE needs it even though it is a byproduct of a phase to build the
@@ -626,6 +636,10 @@ else()
   set(SURGE_JUCE_FORMATS AU VST3 Standalone)
 endif()
 
+if(IOS)
+  set(SURGE_JUCE_FORMATS Standalone) # AUv3)
+endif()
+
 if(SURGE_XT_BUILD_AUV3)
   list(APPEND SURGE_JUCE_FORMATS AUv3)
 endif()
@@ -795,8 +809,11 @@ if( BUILD_SURGE_EFFECTS_BANK )
 
   add_custom_target( Surge-Effects-Bank-Packaged ALL )
   add_dependencies( Surge-Effects-Bank-Packaged surge-fx_All )
-  add_dependencies( Surge-Effects-Bank-Packaged surge-fx_VST3 )
   add_dependencies( Surge-Effects-Bank-Packaged surge-fx_Standalone )
+
+  if(NOT IOS)
+    add_dependencies( Surge-Effects-Bank-Packaged surge-fx_VST3 )
+  endif()
 
   add_custom_command(
           TARGET Surge-Effects-Bank-Packaged
@@ -808,7 +825,9 @@ if( BUILD_SURGE_EFFECTS_BANK )
   )
 
   if( APPLE )
-    add_dependencies( Surge-Effects-Bank-Packaged surge-fx_AU )
+    if(NOT IOS)
+      add_dependencies( Surge-Effects-Bank-Packaged surge-fx_AU )
+    endif()
 
     add_custom_command(
           TARGET Surge-Effects-Bank-Packaged
@@ -926,10 +945,11 @@ if( BUILD_SURGE_XT )
 
           ${SURGE_SYNTH_JUCE_GUI_SOURCES}
           )
-
-  target_sources(surge-xt_VST3 PRIVATE
-          src/surge_synth_juce/SurgeSynthVST3Extensions.cpp
-          )
+  if(NOT IOS)
+    target_sources(surge-xt_VST3 PRIVATE
+            src/surge_synth_juce/SurgeSynthVST3Extensions.cpp
+            )
+  endif()
 
   target_sources(surge-xt_Standalone PRIVATE
           src/surge_synth_juce/SurgeSynthStandaloneExtensions.cpp
@@ -947,9 +967,11 @@ if( BUILD_SURGE_XT )
   endif()
 
   if( APPLE )
-    target_sources(surge-xt_AU PRIVATE
-            src/surge_synth_juce/SurgeSynthAUExtensions.cpp
-            )
+    if(NOT IOS)
+      target_sources(surge-xt_AU PRIVATE
+              src/surge_synth_juce/SurgeSynthAUExtensions.cpp
+              )
+    endif()
     if(TARGET surge-xt_AUv3)
       target_sources(surge-xt_AUv3 PRIVATE
               src/surge_synth_juce/SurgeSynthAUv3Extensions.cpp
@@ -1008,8 +1030,11 @@ if( BUILD_SURGE_XT )
 
   add_custom_target( Surge-XT-Packaged ALL )
   add_dependencies( Surge-XT-Packaged surge-xt_All )
-  add_dependencies( Surge-XT-Packaged surge-xt_VST3 )
   add_dependencies( Surge-XT-Packaged surge-xt_Standalone )
+  
+  if(NOT IOS)
+    add_dependencies( Surge-XT-Packaged surge-xt_VST3 )
+  endif()
 
   add_custom_command(
           TARGET Surge-XT-Packaged
@@ -1021,7 +1046,9 @@ if( BUILD_SURGE_XT )
   )
 
   if( APPLE )
-    add_dependencies( Surge-XT-Packaged surge-xt_AU )
+    if(NOT IOS)
+      add_dependencies( Surge-XT-Packaged surge-xt_AU )
+    endif()
 
     add_custom_command(
             TARGET Surge-XT-Packaged
@@ -1051,7 +1078,9 @@ else()
   set( SXTVER "LOCAL")
 endif()
 
-if( APPLE )
+if( IOS )
+  set( SXTOS "iOS" )
+elseif( APPLE )
   set( SXTOS "macOS" )
 elseif( UNIX)
   set( SXTOS "linux" )
@@ -1293,3 +1322,25 @@ add_custom_command(TARGET code-quality-pipeline-checks
   COMMAND ${CMAKE_COMMAND} -E echo About to check clang-format
   COMMAND git ls-files -- ${CLANG_FORMAT_GLOBS} | xargs clang-format --dry-run --Werror
 )
+
+if(IOS)
+    message(STATUS "Setting iOS-specific properties...")
+
+    foreach(target IN ITEMS airwindows eurorack surge-shared surge-shared-binary surge-fx surge-fx-binary surge-xt surge-xt-binary surge-fx_Standalone surge-xt_Standalone) # surge-fx_AUv3 surge-xt_AUv3)
+        set_target_properties(${target}
+            PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "./"
+                ARCHIVE_OUTPUT_DIRECTORY "./"
+                LIBRARY_OUTPUT_DIRECTORY "./")
+    endforeach()
+
+    set_target_properties(surge-xt_Standalone PROPERTIES
+            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+            XCODE_ATTRIBUTE_ENABLE_IN_APP_PURCHASE "YES")
+
+    # set_target_properties(surge-xt_AUv3 PROPERTIES
+    #         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)/Surge.app/PlugIns"
+    #         XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+    #         XCODE_ATTRIBUTE_ENABLE_IN_APP_PURCHASE "YES")
+endif()

@@ -21,6 +21,8 @@
 #include <cstring>
 #include "basic_dsp.h"
 
+#if HAS_LUAJIT
+
 bool Surge::LuaSupport::parseStringDefiningFunction(lua_State *L, const std::string &definition,
                                                     const std::string &functionName,
                                                     std::string &errorMessage)
@@ -157,3 +159,5 @@ Surge::LuaSupport::SGLD::~SGLD()
         }
     }
 }
+
+#endif // HAS_LUAJIT

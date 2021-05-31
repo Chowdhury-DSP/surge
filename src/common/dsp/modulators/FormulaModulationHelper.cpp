@@ -23,6 +23,8 @@ namespace Surge
 namespace Formula
 {
 
+#if HAS_FORMULA_MODULATOR
+
 bool prepareForEvaluation(FormulaModulatorStorage *fs, EvaluatorState &s, bool is_display)
 {
     static lua_State *audioState = nullptr, *displayState = nullptr;
@@ -371,5 +373,8 @@ void createInitFormula(FormulaModulatorStorage *fs)
 end)FN");
     fs->interpreter = FormulaModulatorStorage::LUA;
 }
+
+#endif // HAS_FORMULA_MODULATOR
+
 } // namespace Formula
 } // namespace Surge

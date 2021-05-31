@@ -38,17 +38,45 @@ namespace Formula
 #if !HAS_FORMULA_MODULATOR
 struct EvaluatorState
 {
+    bool released;
+    char funcName[TXT_SIZE];
+    char stateName[TXT_SIZE];
+
+    bool isvalid = false;
+    bool useEnvelope = true;
+
+    float del, a, h, dec, s, r;
+    float rate, amp, phase, deform;
+    float tempo, songpos;
+
+    bool retrigger_AEG, retrigger_FEG;
+
+    std::string error;
+    bool raisedError = false;
+    void adderror(const std::string &s)
+    {
+        error += s;
+        raisedError = true;
+    }
+
+    // lua_State *L; // This is assigned by prepareForEvaluation to be one per thread
 };
+
+bool initEvaluatorState(EvaluatorState &s) {}
+bool cleanEvaluatorState(EvaluatorState &s) {}
+
 bool prepareForEvaluation(FormulaModulatorStorage *fs, EvaluatorState &s, bool is_display)
 {
     return false;
 }
 
-float valueAt(int phaseIntPart, float phaseFracPart, float deform, FormulaModulatorStorage *fs,
+float valueAt(int phaseIntPart, float phaseFracPart, FormulaModulatorStorage *fs,
               EvaluatorState *state)
 {
     return 0;
 }
+
+void createInitFormula(FormulaModulatorStorage *fs) {}
 
 #else
 struct EvaluatorState
